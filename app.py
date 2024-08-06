@@ -9,6 +9,7 @@ from stalking.youtube import download_thumbnail
 from info.weather import get_weather  # Import the weather function
 from info.crypto import get_crypto    # Import the crypto function
 from info.youtube import search_youtube_videos  # Import the YouTube search function
+from stalking.spotify import spotify_bp  # Import the Spotify Blueprint
 import uuid
 
 app = Flask(__name__)
@@ -67,6 +68,9 @@ def load_neko_data():
     return neko_data
 
 NEKO_DATA = load_neko_data()
+
+# Register Spotify Blueprint
+app.register_blueprint(spotify_bp, url_prefix='/spotify')
 
 # Root route to render index.html
 @app.route('/', methods=['GET'])
@@ -250,51 +254,22 @@ def upload_file():
         unique_filename = f"{unique_id}.{file_extension}"
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
         file_url = url_for('uploaded_file', filename=unique_filename, _external=True)
-        return jsonify({"url": file_url}), 200
-    else:
-        return jsonify({"error": "File type not allowed"}), 400
+        return jsonify({"file_url": file_url}), 201
+    return jsonify({"error": "Invalid file format"}), 400
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-@app.route('/uploads/<filename>', methods=['GET'])
+# Serve uploaded files
+@app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/url/upload', methods=['GET', 'POST'])
-def upload_page():
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            return jsonify({"error": "No file part"}), 400
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "No selected file"}), 400
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            unique_id = str(uuid.uuid4())
-            file_extension = filename.rsplit('.', 1)[1].lower()
-            unique_filename = f"{unique_id}.{file_extension}"
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-            file_url = url_for('uploaded_file', filename=unique_filename, _external=True)
-            return jsonify({"url": file_url}), 200
-        else:
-            return jsonify({"error": "File type not allowed"}), 400
-    return '''
-    <!doctype html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8">
-        <title>Upload File</title>
-      </head>
-      <body>
-        <h1>Upload File</h1>
-        <form method="post" enctype="multipart/form-data">
-          <input type="file" name="file">
-          <input type="submit" value="Upload">
-        </form>
-      </body>
-    </html>
-    '''
+# Error handling
+@app.errorhandler(404)
+def not_found_error(error):
+    return jsonify({"error": "Resource not found"}), 404
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({"error": "Internal server error"}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
