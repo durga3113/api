@@ -2,9 +2,8 @@ from flask import Blueprint, request, jsonify
 import instaloader
 import re
 
-# Create a Blueprint for the Instagram downloader
-insta_bp = Blueprint('insta_bp', __name__)
-
+# Create a blueprint for Instagram
+insta_bp = Blueprint('insta', __name__)
 L = instaloader.Instaloader()
 
 @insta_bp.route('/insta', methods=['GET'])
@@ -14,9 +13,6 @@ def insta_downloader():
         return jsonify({"error": "No URL provided."}), 400
 
     try:
-        # Print the URL for debugging
-        print(f"Received URL: {url}")
-
         # Extract shortcode from URL
         if 'instagram.com/p/' in url:
             match = re.search(r'/p/([^/?]+)', url)
@@ -31,8 +27,6 @@ def insta_downloader():
             return jsonify({"error": "Failed to extract shortcode."}), 400
 
         shortcode = match.group(1)
-        print(f"Extracted Shortcode: {shortcode}")
-
         post = instaloader.Post.from_shortcode(L.context, shortcode)
 
         # Collecting data
@@ -70,5 +64,4 @@ def insta_downloader():
 
         return jsonify(data)
     except Exception as e:
-        print(f"Exception occurred: {e}")
         return jsonify({"error": str(e)}), 500
