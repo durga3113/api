@@ -4,7 +4,7 @@ import os
 import random
 import json
 import lyricsgenius
-from stalking.insta import get_instagram_profile
+from stalking.insta import insta_bp
 from stalking.youtube import download_thumbnail
 from info.weather import get_weather  # Import the weather function
 from info.crypto import get_crypto    # Import the crypto function
@@ -141,20 +141,6 @@ def get_random_fact(category):
         return f"No facts found for category '{category}'", 404
     except Exception as e:
         return str(e), 500
-
-# Instagram profile route
-@app.route('/insta', methods=['GET'])
-def get_insta_profile():
-    username = request.args.get('username')
-    if not username:
-        return jsonify({'error': 'Missing username parameter'}), 400
-
-    profile_info, error = get_instagram_profile(username)
-    if error:
-        return jsonify({'error': error}), 500
-
-    return jsonify(profile_info)
-
 # YouTube thumbnail route
 @app.route('/download_thumbnail', methods=['GET'])
 def download_youtube_thumbnail():
@@ -270,6 +256,8 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     return jsonify({"error": "Internal server error"}), 500
+# Register the Instagram blueprint
+app.register_blueprint(insta_bp)
 
 if __name__ == '__main__':
     app.run(debug=True)
